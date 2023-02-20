@@ -8,27 +8,18 @@ import Filter from './Filter/Filter';
 
 class App extends Component {
   state = {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
+    contacts: [],
     filter: '',
   };
 
-  addContact = ({ name, number }) => {
+  handleAddContact = ({ name, number }) => {
     const normalizationName = name.toLowerCase();
 
-    let atContactList = false;
-    this.state.contacts.forEach(item => {
-      if (item.name.toLocaleLowerCase() === normalizationName) {
-        alert(`${name} is already in contacts.`);
-        atContactList = true;
-      }
-    });
-
-    if (atContactList) {
+    const alreadyInContacts = this.state.contacts.some(
+      ({ name }) => name.toLocaleLowerCase() === normalizationName
+    );
+    if (alreadyInContacts) {
+      alert(`${name} is already in contacts.`);
       return;
     }
 
@@ -52,8 +43,8 @@ class App extends Component {
     );
   };
 
-  changeFilter = e => {
-    this.setState({ filter: e.currentTarget.value });
+  changeFilter = evt => {
+    this.setState({ filter: evt.currentTarget.value });
   };
 
   deleteContact = contactId => {
@@ -62,20 +53,46 @@ class App extends Component {
     }));
   };
 
+  componentDidMount() {
+    const list = localStorage.getItem('contacts-list');
+    if (!list) return;
+
+    try {
+      this.setState({
+        contacts: JSON.parse(list),
+      });
+    } catch (evt) {
+      console.error(evt);
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.contacts.length !== this.state.contacts.length) {
+      const contactsListStringified = JSON.stringify(this.state.contacts);
+      localStorage.setItem('contacts-list', contactsListStringified);
+    }
+  }
+
   render() {
-    const { filter } = this.state;
+    const { filter, contacts } = this.state;
     const visibleContacts = this.getContacts();
 
     return (
       <div className={css.box}>
         <h2 className={css.title}>Phonebook</h2>
-        <ContactForm onSubmit={this.addContact} />
+        <ContactForm onSubmit={this.handleAddContact} />
         <h2 className={css.title}>Contacts</h2>
-        <Filter value={filter} onChange={this.changeFilter} />
-        <ContactList
-          contacts={visibleContacts}
-          deleteContact={this.deleteContact}
-        />
+        {contacts.length > 0 ? (
+          <>
+            <Filter value={filter} onChange={this.changeFilter} />
+            <ContactList
+              contacts={visibleContacts}
+              deleteContact={this.deleteContact}
+            />
+          </>
+        ) : (
+          <h2 className={css['empty-list']}>Contact list is empty</h2>
+        )}
       </div>
     );
   }
